@@ -944,6 +944,15 @@ assert args.rmse_score_basis in ["series", "cycle"]
 r = Regions()
 InitializeRegions(args.define_regions)
 missing = []
+newregions = []
+#PCM: added better handling for regions with spaces in their names. Need to use _ instead of spaces in the rose-app.conf file.
+#PCM: those _ are replaced by spaces here.
+print("regions list ",args.regions) #PCM 
+for region in args.regions:
+    region=region.replace('_', ' ') #PCM
+    newregions.append(region)
+args.regions = newregions
+print("new regions list ",args.regions) #PCM 
 for region in args.regions:
     if region not in r.regions:
         missing.append(region)

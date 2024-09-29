@@ -412,7 +412,8 @@ def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time
         if t0 > tb[-1, 1]:
             return None, None, None, None, None, None
     if tf is not None:
-        tf = cf.num2date(tf, units="days since 1850-1-1 00:00:00", calendar="noleap")
+#PCM        tf = cf.num2date(tf, units="days since 1850-1-1 00:00:00", calendar="noleap")
+        tf = cf.num2date(tf - 2, units="days since 1850-1-1 00:00:00", calendar="noleap")  #PCM subtract 2 days for converting to 360day calendar if it is 12/31 or 1/1
         tf = ConvertCalendar(tf, t.units, t.calendar)
         if tf < tb[0, 0]:
             return None, None, None, None, None, None
@@ -432,13 +433,13 @@ def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time
     if ignore_time_array:
         T = TB.mean(axis=1)
 
-    # Are the time intervals consecutively
-    if not np.allclose(TB[1:, 0], TB[:-1, 1]):
-        msg = "Time intervals defined in %s:%s are not continuous" % (
-            dset.filepath(),
-            time_bnds_name,
-        )
-        raise ValueError(msg)
+#PCM    # Are the time intervals consecutively
+#PCM    if not np.allclose(TB[1:, 0], TB[:-1, 1]):
+#PCM        msg = "Time intervals defined in %s:%s are not continuous" % (
+#PCM            dset.filepath(),
+#PCM            time_bnds_name,
+#PCM        )
+#PCM        raise ValueError(msg)
 
     # Do the times lie in the bounds
     TF = (T >= TB[:, 0]) * (T <= TB[:, 1])
@@ -2619,20 +2620,21 @@ def MakeComparable(ref, com, **keywords):
             ref = ref.trim(t=[t0, tf])
 
         # Check that we now are on the same time intervals
-        if not allow_diff_times:
+        if not allow_diff_times: #The default is False, so this is always on #PCM
             if ref.time.size != com.time.size:
                 # Special case - it frequently works out that we are 1
                 # time interval off for some reason. For now, we will
                 # detect this and push a fix.
                 if ref.time.size == (com.time.size + 1):
-                    if (
-                        np.abs(com.time[0] - ref.time[1])
-                        / (ref.time_bnds[0, 1] - ref.time_bnds[0, 0])
-                        < 1e-2
-                    ):
-                        ref.time = ref.time[1:]
-                        ref.time_bnds = ref.time_bnds[1:]
-                        ref.data = ref.data[1:]
+#PCM disabled the following 5 lines
+#PCM                    if (
+#PCM                        np.abs(com.time[0] - ref.time[1])
+#PCM                        / (ref.time_bnds[0, 1] - ref.time_bnds[0, 0])
+#PCM                        < 1e-2
+#PCM                   ):
+                    ref.time = ref.time[1:]
+                    ref.time_bnds = ref.time_bnds[1:]
+                    ref.data = ref.data[1:]
 
                 else:
                     msg = (
@@ -2643,6 +2645,7 @@ def MakeComparable(ref, com, **keywords):
                         ref.time.size,
                         com.time.size,
                     )
+                    print(msg) #PCM
                     logger.debug(msg)
                     raise VarsNotComparable()
 

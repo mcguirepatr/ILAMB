@@ -214,11 +214,12 @@ class ConfSoilCarbon(Confrontation):
             "Temporally integrated period mean",
             "timeint",
             "MNAME_global_timeint.png",
-            side="MODEL",
+            side="MODEL=MNAME",
             legend=False,
         )
         fig, ax = plt.subplots(figsize=(5, 5.5), tight_layout=True, dpi=100)
         mod_r.plotPointCloud(ax, vmin=0, vmax=2000, cmap="wetdry")
+        mod_r.plotModel(ax, color=m.color, prediction=True)
         r.plotModel(ax, color="k", prediction=True)
         ax.set_xlim(-22, 30)
         ax.set_ylim(1, 3e3)
@@ -229,7 +230,7 @@ class ConfSoilCarbon(Confrontation):
             "Temporally integrated period mean",
             "rel_tas",
             "MNAME_RNAME_rel_tas.png",
-            side="MODEL",
+            side="MODEL=MNAME",
             legend=False,
         )
         fig, ax = plt.subplots(figsize=(5, 4.5), tight_layout=True, dpi=100)
@@ -286,13 +287,13 @@ class ConfSoilCarbon(Confrontation):
             "Temporally integrated period mean",
             "timeint",
             "MNAME_global_timeint.png",
-            side="MODEL",
+            side="MODEL=MNAME",
             legend=False,
         )
         page.addFigure(
             "Temporally integrated period mean",
             "rel_tas",
             "MNAME_RNAME_rel_tas.png",
-            side="MODEL",
+            side="MODEL=MNAME",
             legend=False,
         )

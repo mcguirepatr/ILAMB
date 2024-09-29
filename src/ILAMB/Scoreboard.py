@@ -333,7 +333,7 @@ def BuildScalars(node):
                         s[c] = np.ma.masked_array(
                             np.zeros(len(models)), mask=np.ones(len(models), dtype=bool)
                         )
-                    s[c][models.index(dset.getncattr("name"))] = grp[c][...]
+                    s[c][models.index(dset.getncattr("name"))] = np.ma.masked_invalid(grp[c][...])
     else:
         scores = None
         for child in node.children:
@@ -347,7 +347,8 @@ def BuildScalars(node):
                         np.zeros(len(models)), mask=np.zeros(len(models), dtype=bool)
                     )
                 if c in s["children"][child.name].keys():
-                    s[c] = s[c] + s["children"][child.name][c] * child.normalize_weight
+                    s[c] = s[c] + np.ma.masked_invalid(s["children"][child.name][c]) * child.normalize_weight
+
 
 
 def ConvertList(node):
