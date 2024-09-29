@@ -1233,7 +1233,8 @@ class Confrontation(object):
                     ind_name = c.longname.split("/")[0]
                     ref_ind.name = "%s/%s" % (ind_name, c.name)
                     com_ind.name = "%s/%s" % (ind_name, m.name)
-                except:
+                except Exception as e: #PCM
+                    print("Exception: relationship ",c,e) #PCM
                     continue
 
                 # if any one of the data sources are sites, they all
