@@ -191,6 +191,7 @@ class HtmlFigure:
         self,
         name,
         pattern,
+        side2="",
         side=None,
         legend=False,
         benchmark=False,
@@ -201,6 +202,7 @@ class HtmlFigure:
         self.name = name
         self.pattern = pattern
         self.side = side
+        self.side2 = side2
         self.legend = legend
         self.benchmark = benchmark
         self.longname = longname
@@ -245,8 +247,10 @@ class HtmlFigure:
             self.name,
         )
         if self.side is not None:
+        if self.side2 is not None:
             code += """
-          <center>%s</center>""" % (
+          <center%s>%s</center>""" % (
+                self.side2,
                 self.side.replace(" ", "&nbsp;")
             )
         code += """
@@ -598,8 +602,12 @@ class HtmlPage(object):
             var MNAME = msel.options[mid].value;
             var CNAME = "%s";
             var head  = "%s";
+            var title  = "MODEL=MNAME";
             head      = head.replace("CNAME",CNAME).replace("RNAME",RNAME).replace("MNAME",MNAME);
             $("#%sHead").text(head);
+            title      = title.replace("MNAME",MNAME);
+            $("#%sTitle").text(title);
+            $("#%sTitle2").text(title);
             %s
         }""" % (
             self.name,
@@ -608,8 +616,11 @@ class HtmlPage(object):
             self.cname,
             self.header,
             self.name,
+            self.name,
+            self.name,
             rows,
         )
+            
 
         nscores = len(metrics)
         if len(self.inserts) > 0:

@@ -560,7 +560,7 @@ class Scoreboard:
 
         r = Regions()
         run_title = (
-            "ILAMB Benchmarking" if self.run_title is None else self.run_title[0]
+            "ILAMB Benchmarking" if self.run_title is None else "ILAMB Benchmarking: "+self.run_title[0]
         )
         models = [m.name for m in M]
         maxM = max([len(m) for m in models])
@@ -570,10 +570,40 @@ class Scoreboard:
         py = int(px / 2) - 5
         scores, rel_tree = self.createJSON(M)
         scores = [s.replace(" global", "") for s in scores if " global" in s]
+
+        filename_css2="styles.css"
+
+        css2 = """
+          .cross-cell {
+              position: relative;
+          }
+
+          .cross-cell::before, .cross-cell::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;  /* Thickness of the line */
+              background-color: black;  /* Color of the 'x' */
+              top: 50%;
+              left: 0;
+              transform-origin: center;
+          }
+
+          .cross-cell::before {
+              transform: rotate(45deg);  /* Diagonal line from top-left to bottom-right */
+          }
+
+          .cross-cell::after {
+              transform: rotate(-45deg);  /* Diagonal line from top-right to bottom-left */
+          }"""
+        with open("%s/%s" % (self.build_dir, filename_css2), "w") as f:
+            f.write(css2)
+
         html = """
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="styles.css">
     <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
     <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
     <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
@@ -641,12 +671,14 @@ class Scoreboard:
 	  if(typeof array == 'undefined'){
 	      for(var i = 1, col; col = table.rows[row].cells[i]; i++) {
 		  col.style.backgroundColor = "#808080";
+                  col.classList.add("cross-cell");          // Add class to draw the 'x'
 	      }
 	      return;
 	  }
 	  var nc = cmap.length;
 	  for(var col=0;col<array.length;col++){
 	      var clr = "#808080";
+              var cell = table.rows[row].cells[col + 1];    // Get the cell
 	      if(array[col] > -900){
                   var ae = Math.abs(array[col]);
                   var ind;
@@ -657,7 +689,10 @@ class Scoreboard:
                   }
 		  ind = Math.min(Math.max(ind,0),nc-1);
 		  clr = cmap[ind];
-	      }
+                  cell.classList.remove("cross-cell");      // Remove the 'x' for non-gray cells
+               } else {
+                  cell.classList.add("cross-cell");         // Add the 'x' if gray
+               }
 	      table.rows[row].cells[col+1].style.backgroundColor = clr;
 	  }
       }
@@ -910,7 +945,7 @@ class Scoreboard:
 	<table class="table-header-rotated" id="missingLegend">
 	  <tbody>
             <tr>
-              <td bgcolor="#808080"></td>
+              <td bgcolor="#808080" class="cross-cell"></td>
 	    </tr>
 	  </tbody>
 	</table>Missing Data or Error
@@ -945,6 +980,9 @@ class Scoreboard:
         CreateJSON(os.path.join(self.build_dir, "scalar_database.csv"), M)
 
     def createUDDashboard(self, filename="dashboard.html"):
+        run_title = (
+            "LMT Unified Dashboard" if self.run_title is None else "LMT Unified Dashboard: "+self.run_title[0]
+        )
         html = """
 <!DOCTYPE html>
 <html lang="en">
@@ -1066,7 +1104,9 @@ class Scoreboard:
       <header class="panel-header">
         <!--button class="btn-hamburger js-slideout-toggle"></button-->
         <span id="sidemenuicon" class="js-slideout-toggle">&#9776&nbsp;Menu</span>
-        <h1 class="title">LMT Unified Dashboard</h1>
+        <h1 class="title"> """ 
+         html += run_title
+         html +=  """ </h1>
       </header>
       <section style="text-align:center">
         <input name="file" id="file" type="file" onchange="loadlocJson()"/>
