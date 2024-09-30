@@ -247,9 +247,9 @@ class HtmlFigure:
             self.name,
         )
         if self.side is not None:
-        if self.side2 is not None:
+         if self.side2 is not None:
             code += """
-          <center%s>%s</center>""" % (
+            <center%s>%s</center>""" % (
                 self.side2,
                 self.side.replace(" ", "&nbsp;")
             )

@@ -457,7 +457,7 @@ class Scoreboard:
                 Constructor = ConfrontationTypes[node.ctype]
                 if Constructor is None:
                     raise ValueError(
-                        f"The confrontation {node.ctype} is nto available."
+                        f"The confrontation {node.ctype} is not available."
                     )
             else:
                 # try importing the confrontation
@@ -559,6 +559,7 @@ class Scoreboard:
         from ILAMB.generated_version import version as ilamb_version
 
         r = Regions()
+        self.run_title[0] = self.run_title[0].replace('_', ' ') #PCM
         run_title = (
             "ILAMB Benchmarking" if self.run_title is None else "ILAMB Benchmarking: "+self.run_title[0]
         )
@@ -980,6 +981,7 @@ class Scoreboard:
         CreateJSON(os.path.join(self.build_dir, "scalar_database.csv"), M)
 
     def createUDDashboard(self, filename="dashboard.html"):
+        self.run_title[0] = self.run_title[0].replace('_', ' ') #PCM
         run_title = (
             "LMT Unified Dashboard" if self.run_title is None else "LMT Unified Dashboard: "+self.run_title[0]
         )
@@ -1105,8 +1107,8 @@ class Scoreboard:
         <!--button class="btn-hamburger js-slideout-toggle"></button-->
         <span id="sidemenuicon" class="js-slideout-toggle">&#9776&nbsp;Menu</span>
         <h1 class="title"> """ 
-         html += run_title
-         html +=  """ </h1>
+        html += run_title
+        html +=  """ </h1>
       </header>
       <section style="text-align:center">
         <input name="file" id="file" type="file" onchange="loadlocJson()"/>
