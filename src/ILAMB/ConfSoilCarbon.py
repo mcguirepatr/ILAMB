@@ -215,7 +215,7 @@ class ConfSoilCarbon(Confrontation):
             "timeint",
             "MNAME_global_timeint.png",
             side="MODEL=MNAME",
-            side2=" id=\"MeanStateTitle\"" 
+            side2=" id=\"MeanStateTitle\"",
             legend=False,
         )
         fig, ax = plt.subplots(figsize=(5, 5.5), tight_layout=True, dpi=100)
@@ -232,7 +232,7 @@ class ConfSoilCarbon(Confrontation):
             "rel_tas",
             "MNAME_RNAME_rel_tas.png",
             side="MODEL=MNAME",
-            side2=" id=\"MeanStateTitle2\"" 
+            side2=" id=\"MeanStateTitle2\"", 
             legend=False,
         )
         fig, ax = plt.subplots(figsize=(5, 4.5), tight_layout=True, dpi=100)

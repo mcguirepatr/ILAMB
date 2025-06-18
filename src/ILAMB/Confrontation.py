@@ -1234,7 +1234,7 @@ class Confrontation(object):
                     ref_ind.name = "%s/%s" % (ind_name, c.name)
                     com_ind.name = "%s/%s" % (ind_name, m.name)
                 except Exception as e: #PCM
-                    print("Exception: relationship ",c,e) #PCM
+                    #print("Exception: relationship ",c,e) #PCM
                     continue
 
                 # if any one of the data sources are sites, they all
