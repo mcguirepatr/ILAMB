@@ -559,6 +559,7 @@ class Scoreboard:
         from ILAMB.generated_version import version as ilamb_version
 
         r = Regions()
+        self.run_title = self.run_title if self.run_title is not None else ["Untitled Run"]
         self.run_title[0] = self.run_title[0].replace('_', ' ') #PCM
         run_title = (
             "ILAMB Benchmarking" if self.run_title is None else "ILAMB Benchmarking: "+self.run_title[0]

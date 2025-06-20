@@ -33,6 +33,14 @@ def getSource(vname, filename, unit):
     return lat, lon, data
 
 
+def grids_match(lat1, lat2, lon1, lon2):
+    #from ChatGPT
+    #print("checking if grids_match")
+    if lat1.shape != lat2.shape or lon1.shape != lon2.shape:
+        return False
+    return (np.allclose(lat1, lat2, rtol=1e-5, atol=1e-8) and
+            np.allclose(lon1, lon2, rtol=1e-5, atol=1e-8))
+
 class ConfSoilCarbon(Confrontation):
     """A soil carbon temperature sensivity benchmark.
 
@@ -77,15 +85,43 @@ class ConfSoilCarbon(Confrontation):
         assert np.allclose(LAT, lat) * np.allclose(LON, lon)
         LAT, LON, pr = getSource("pr", self.keywords.get("pr_source"), "mm yr-1")
         assert np.allclose(LAT, lat) * np.allclose(LON, lon)
-        LAT, LON, pet = getSource("pet", self.keywords.get("pet_source"), "mm yr-1")
-        assert np.allclose(LAT, lat) * np.allclose(LON, lon)
-        LAT, LON, fracpeat = getSource(
+
+        #print("pr lat range:", LAT.min(), LAT.max())
+        #print("pr lon range:", LON.min(), LON.max())
+
+        fracpeat_lat, fracpeat_lon, fracpeat = getSource(
             "fracpeat", self.keywords.get("fracpeat_source"), "1"
         )
-        assert np.allclose(LAT, lat) * np.allclose(LON, lon)
+        assert np.allclose(fracpeat_lat, lat) * np.allclose(fracpeat_lon, lon)
+        pet_lat, pet_lon, pet = getSource("pet", self.keywords.get("pet_source"), "mm yr-1")
+        assert np.allclose(pet_lat, lat) * np.allclose(pet_lon, lon)
 
+        #print("pet lat range:", pet_lat.min(), pet_lat.max())
+        #print("pet lon range:", pet_lon.min(), pet_lon.max())
+
+        #print("pet data stats:")
+        #print("  min:", np.ma.min(pet))
+        #print("  max:", np.ma.max(pet))
+        #print("  mean:", np.ma.mean(pet))
+        #print("  median:", np.ma.median(pet))
+        #print("  shape:", pet.data.shape)
+
+        #print("pr data stats:")
+        #print("  min:", np.ma.min(pr))
+        #print("  max:", np.ma.max(pr))
+        #print("  mean:", np.ma.mean(pr))
+        #print("  median:", np.ma.median(pr))
+        #print("  shape:", pr.data.shape)
+
+        #print("pr - pet stats:")
+        aridity_index = pr - pet
+        #print("  min:", np.ma.min(aridity_index))
+        #print("  max:", np.ma.max(aridity_index))
+        #print("  mean:", np.ma.mean(aridity_index))
+        #print("  median:", np.ma.median(aridity_index))
+        #print("  < threshold:", np.ma.sum(aridity_index < aridity_threshold))
         # Determine what will be masked
-        mask = soilc.mask + tas.mask + npp.mask + pr.mask  # where any source is masked
+        mask = soilc.mask + tas.mask + npp.mask + pr.mask + pet.mask + fracpeat.mask  # where any source is masked
         mask += soilc < soilc_threshold  # where there is no soilc
         mask += npp < npp_threshold  # where npp is small or negative
         mask += (pr - pet) < aridity_threshold  # where aridity dominates
@@ -138,20 +174,109 @@ class ConfSoilCarbon(Confrontation):
             .integrateInTime(mean=True)
             .convert("mm yr-1")
         )
-        mod_pet = Variable(lat=LAT, lon=LON, unit="mm yr-1", data=pet).interpolate(
-            lat=mod_pr.lat, lon=mod_pr.lon
-        )
 
-        # Determine what will be masked
+        #print("pet type:", type(pet))
+        #print("pet.shape:", getattr(pet, "shape", "N/A"))
+        #print("pet.mask:", hasattr(pet, "mask"))
+        #if isinstance(pet.mask, np.ndarray):
+        #   print("pet.mask shape:", pet.mask.shape)
+        #   print("pet.mask dtype:", pet.mask.dtype)
+        #else:
+        #   print("pet.mask is nomask (no masking applied)")
+
+        #print("pet_lat range:", pet_lat.min(), pet_lat.max())
+        #print("pet_lon range:", pet_lon.min(), pet_lon.max())
+        #print("mod_pr lat range:", mod_pr.lat.min(), mod_pr.lat.max())
+        #print("mod_pr lon range:", mod_pr.lon.min(), mod_pr.lon.max())
+
+        #print("pet_lat shape:", pet_lat.shape)
+        #print("mod_pr.lat shape:", mod_pr.lat.shape)
+        #print("pet_lat dtype:", pet_lat.dtype)
+        #print("mod_pr.lat dtype:", mod_pr.lat.dtype)
+        #print("pet_lat contains NaNs:", np.isnan(pet_lat).any())
+        #print("mod_pr.lat contains NaNs:", np.isnan(mod_pr.lat).any())
+
+
+        # Interpolate PET onto mod_pr grid if needed
+        if not grids_match(pet_lat, mod_pr.lat, pet_lon, mod_pr.lon):
+            #print("Interpolating pet")
+            mod_pet = Variable(
+                 lat=pet_lat,
+                 lon=pet_lon,
+                 unit="mm yr-1",
+                 data=np.ma.masked_array(pet, mask=np.ma.getmaskarray(pet))
+            ).interpolate(
+                 lat=mod_pr.lat,
+                 lon=mod_pr.lon
+            )
+        else:
+            #print("No interpolation pet")
+            mod_pet = Variable(
+                lat=pet_lat,
+                lon=pet_lon,
+                unit="mm yr-1",
+                data=np.ma.masked_array(pet, mask=np.ma.getmaskarray(pet))
+            )
+
+        # Interpolate fracpeat onto mod_pr grid if needed
+        if not grids_match(fracpeat_lat, mod_pr.lat, fracpeat_lon, mod_pr.lon):
+            #print("Interpolating fracpeat")
+            mod_fracpeat = Variable(
+                 lat=fracpeat_lat,
+                 lon=fracpeat_lon,
+                 unit="1",
+                 data=np.ma.masked_array(fracpeat, mask=np.ma.getmaskarray(fracpeat))
+            ).interpolate(
+                 lat=mod_pr.lat,
+                 lon=mod_pr.lon
+            )
+        else:
+            #print("No interpolation fracpeat")
+            mod_fracpeat = Variable(
+                lat=fracpeat_lat,
+                lon=fracpeat_lon,
+                unit="1",
+                data=np.ma.masked_array(fracpeat, mask=np.ma.getmaskarray(fracpeat))
+            )
+
+        #print("mod_pet lat range:", mod_pet.lat.min(), mod_pet.lat.max())
+        #print("mod_pet lon range:", mod_pet.lon.min(), mod_pet.lon.max())
+
+
+        #print("mod_pet data stats:")
+        #print("  min:", np.ma.min(mod_pet.data))
+        #print("  max:", np.ma.max(mod_pet.data))
+        #print("  mean:", np.ma.mean(mod_pet.data))
+        #print("  median:", np.ma.median(mod_pet.data))
+        #print("  shape:", mod_pet.data.shape)
+
+        #print("mod_pr data stats:")
+        #print("  min:", np.ma.min(mod_pr.data))
+        #print("  max:", np.ma.max(mod_pr.data))
+        #print("  mean:", np.ma.mean(mod_pr.data))
+        #print("  median:", np.ma.median(mod_pr.data))
+        #print("  shape:", mod_pr.data.shape)
+
+        #print("mod_pr - mod_pet stats:")
+        aridity_index = mod_pr.data - mod_pet.data
+        #print("  min:", np.ma.min(aridity_index))
+        #print("  max:", np.ma.max(aridity_index))
+        #print("  mean:", np.ma.mean(aridity_index))
+        #print("  median:", np.ma.median(aridity_index))
+        #print("  < threshold:", np.ma.sum(aridity_index < aridity_threshold))
+# Determine what will be masked
         mask = (
             mod_soilc.data.mask
             + mod_npp.data.mask
             + mod_tas.data.mask
             + mod_pr.data.mask
+            + mod_pet.data.mask
+            + mod_fracpeat.data.mask
         )
         mask += mod_soilc.data < soilc_threshold
         mask += mod_npp.data < npp_threshold
         mask += (mod_pr.data - mod_pet.data) < aridity_threshold
+        mask += mod_fracpeat.data > sat_threshold  # where mostly peatland
         mod_soilc = np.ma.masked_array(mod_soilc.data, mask=mask).compressed()
         mod_npp = np.ma.masked_array(mod_npp.data, mask=mask).compressed()
         mod_tas = Variable(
