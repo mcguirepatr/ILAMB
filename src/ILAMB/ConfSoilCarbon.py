@@ -414,6 +414,7 @@ class ConfSoilCarbon(Confrontation):
             "timeint",
             "MNAME_global_timeint.png",
             side="MODEL=MNAME",
+            side2=" id=\"MeanStateTitle\"", 
             legend=False,
         )
         page.addFigure(
@@ -421,5 +422,6 @@ class ConfSoilCarbon(Confrontation):
             "rel_tas",
             "MNAME_RNAME_rel_tas.png",
             side="MODEL=MNAME",
+            side2=" id=\"MeanStateTitle2\"", 
             legend=False,
         )
