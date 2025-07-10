@@ -334,7 +334,6 @@ class ConfSoilCarbon(Confrontation):
                         results, group="MeanState"
                     )
                 results.setncattr("complete", 1)
-
         page.addFigure(
             "Temporally integrated period mean",
             "timeint",
