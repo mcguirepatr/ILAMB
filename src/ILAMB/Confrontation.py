@@ -412,7 +412,9 @@ class Confrontation(object):
     def pruneRegions(self, var):
         # remove regions if there is no data from the input variable
         r = Regions()
+        #print("pruneRegions var, self.regions=",var,self.regions)
         self.regions = [region for region in self.regions if r.hasData(region, var)]
+        #print("pruneRegions2 var, self.regions=",var,self.regions)
 
     def confront(self, m):
         r"""Confronts the input model with the observational data.
@@ -511,11 +513,13 @@ class Confrontation(object):
 
         filelist = glob.glob(os.path.join(self.output_path, "*.nc"))
         benchmark_file = [f for f in filelist if "Benchmark" in f]
+        #print("ZZZZ1")
 
         # There may be regions in which there is no benchmark data and
         # these should be weeded out. If the plotting phase occurs in
         # the same run as the analysis phase, this is not needed.
         if benchmark_file:
+            #print("ZZZZ2")
             with Dataset(benchmark_file[0]) as dset:
                 if "MeanState" in dset.groups:
                     Vs = getVariableList(dset.groups["MeanState"])
@@ -523,6 +527,7 @@ class Confrontation(object):
                     Vs = []
             Vs = [v for v in Vs if "timeint" in v]
             if Vs:
+                #print("ZZZZ3")
                 self.pruneRegions(
                     Variable(
                         filename=benchmark_file[0],
@@ -530,6 +535,7 @@ class Confrontation(object):
                         groupname="MeanState",
                     )
                 )
+                #print("ZZZZ4")
 
         # Determine the min/max of variables over all models
         limits = {}
@@ -551,6 +557,7 @@ class Confrontation(object):
                     variables."""
                     if pname in time_opts:
                         region = vname.split("_")[-1]
+                        #print("ZZZZ5 region ", region)
                         if pname not in limits:
                             limits[pname] = {}
                         if region not in limits[pname]:

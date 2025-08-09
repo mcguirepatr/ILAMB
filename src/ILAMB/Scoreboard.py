@@ -448,9 +448,11 @@ class Scoreboard:
 
             node.rmse_score_basis = self.rmse_score_basis
 
+            #print("in Scoreboard1: node.regions, regions =", node.regions, regions)
             # if the user hasn't set regions, use the globally defined ones
             if node.regions is None:
                 node.regions = regions
+            #print("in Scoreboard2: node.regions, regions =", node.regions, regions)
 
             # pick the confrontation to use, is it a built-in confrontation?
             if node.ctype in ConfrontationTypes:

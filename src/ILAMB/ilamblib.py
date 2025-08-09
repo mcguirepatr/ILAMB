@@ -338,7 +338,7 @@ def ConvertCalendar(t, units, calendar):
     )
 
 
-def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time_array=True):
+def GetTime(var, time_name, time_bnds_name=None, t0=None, tf=None, convert_calendar=True, ignore_time_array=True):
     """ """
     # New method of handling time does not like my biggest/smallest time convention
     if t0 is not None:
@@ -379,7 +379,11 @@ def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time
         raise ValueError(msg)
 
     # If no time bounds we create them
-    time_bnds_name = t.bounds if "bounds" in t.ncattrs() else None
+    #PCM time_bnds_name = t.bounds if "bounds" in t.ncattrs() else None
+    #PCM print("ILAMBLIB GetTime A0b: t.ncattrs")
+    #PCM print(t.ncattrs())
+    time_bnds_name = time_bnds_name #PCM
+    #print("ILAMBLIB GetTime A0b: time_bnds_name=",time_bnds_name)
     if time_bnds_name is not None:
         if time_bnds_name not in dset.variables.keys():
             msg = (
@@ -388,8 +392,14 @@ def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time
             )
             raise IOError(msg)
         tb = dset.variables[time_bnds_name][...]
+        #print("ILAMBLIB GetTime A0b: filepath")
+        #print(dset.filepath())
+        #print("ILAMBLIB GetTime A0b: tb")
+        #print(tb)
     else:
         tb = CreateTimeBounds(t, alpha=GuessAlpha(t))
+        #print("ILAMBLIB GetTime A0c: tb")
+        #print(tb)
 
     if "climatology" in t.ncattrs():
         clim_name = t.climatology
@@ -405,18 +415,24 @@ def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time
             raise IOError(msg)
         CB = np.round(CB[0, :] / 365.0 + 1850.0)
 
+    #print("ILAMBLIB GetTime A0d")
     # Convert the input beginning/ending time to the current calendar/datum
     if t0 is not None:
         t0 = cf.num2date(t0, units="days since 1850-1-1 00:00:00", calendar="noleap")
         t0 = ConvertCalendar(t0, t.units, t.calendar)
+        #print(t0)
+        #print(tb[-1, 1])
         if t0 > tb[-1, 1]:
             return None, None, None, None, None, None
     if tf is not None:
-#PCM        tf = cf.num2date(tf, units="days since 1850-1-1 00:00:00", calendar="noleap")
-        tf = cf.num2date(tf - 2, units="days since 1850-1-1 00:00:00", calendar="noleap")  #PCM subtract 2 days for converting to 360day calendar if it is 12/31 or 1/1
+        tf = cf.num2date(tf, units="days since 1850-1-1 00:00:00", calendar="noleap")
+#PCM2        tf = cf.num2date(tf - 2, units="days since 1850-1-1 00:00:00", calendar="noleap")  #PCM subtract 2 days for converting to 360day calendar if it is 12/31 or 1/1
         tf = ConvertCalendar(tf, t.units, t.calendar)
+        #print(tf)
+        #print(tb[0, 0])
         if tf < tb[0, 0]:
             return None, None, None, None, None, None
+    #print("ILAMBLIB GetTime A1")
 
     # Subset by the desired initial and final times
     dt = np.diff(tb, axis=1)[:, 0]
@@ -428,8 +444,25 @@ def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time
     if tf is not None:
         end = np.where(tf < (tb[:, 1] + 0.01 * dt))[0]
         end = end[0] if end.size > 0 else t.size - 1
+    #print("ILAMBLIB GetTime A2a: t0")
+    #print(t0)
+    #print("ILAMBLIB GetTime A2b: tf")
+    #print(tf)
+    #print("ILAMBLIB GetTime A2c: t")
+    #print(t)
+    ##print("ILAMBLIB GetTime A2d: t.data")
+    ##print(t.data)
+    #print("ILAMBLIB GetTime A3: tb")
+    #print(tb)
+    ##print("ILAMBLIB GetTime A3b: tb.data")
+    ##print(tb.data)
+    #print("ILAMBLIB GetTime A4: T")
     T = np.asarray(t[begin : (end + 1)])
+    #print(T)
+    #print("ILAMBLIB GetTime A5: TB")
     TB = np.asarray(tb[begin : (end + 1)])
+    #print(TB)
+    #print("ILAMBLIB GetTime A6")
     if ignore_time_array:
         T = TB.mean(axis=1)
 
@@ -805,6 +838,8 @@ def FromNetCDF4(
     """
     try:
         dset = Dataset(filename, mode="r")
+        #print("FromNetCDF A1, dset=")
+        #print(dset)
         if "set_always_mask" in dir(dset):
             dset.set_always_mask(False)
         if group is None:
@@ -813,11 +848,21 @@ def FromNetCDF4(
             grp = dset.groups[group]
     except RuntimeError:
         raise RuntimeError("Unable to open the file: %s" % filename)
+    #print("FromNetCDF A2, grp=")
+    #print(grp)
 
+    #print("FromNetCDF A2b, variable_name=")
+    #print(variable_name)
+    #print("FromNetCDF A2c, grp.variables.keys()=")
+    #print(grp.variables.keys())
     found = False
     if variable_name in grp.variables.keys():
         found = True
         var = grp.variables[variable_name]
+        #print("FromNetCDF A3, var=")
+        #print(var)
+        #print("FromNetCDF A4, var.ncattrs()=")
+        #print(var.ncattrs())
     else:
         while alternate_vars.count(None) > 0:
             alternate_vars.pop(alternate_vars.index(None))
@@ -825,6 +870,10 @@ def FromNetCDF4(
             if var_name in grp.variables.keys():
                 found = True
                 var = grp.variables[var_name]
+            #print("FromNetCDF A3b, found, var=")
+            #print(found,var)
+            #print("FromNetCDF A4b, var.ncattrs()=")
+            #print(var.ncattrs())
     if not found:
         alternate_vars.insert(0, variable_name)
         raise RuntimeError(
@@ -834,6 +883,8 @@ def FromNetCDF4(
     # Copy attributes into a dictionary
     attr = {attr: var.getncattr(attr) for attr in var.ncattrs()}
 
+    #print("FromNetCDF A5, var.dimensions=")
+    #print(var.dimensions)
     # Check on dimensions
     time_name = [name for name in var.dimensions if "time" in name.lower()]
     lat_name = [name for name in var.dimensions if "lat" in name.lower()]
@@ -1045,8 +1096,12 @@ def FromNetCDF4(
     depth_bnd = None
     data = None
     cbounds = None
+#PCM    t, t_bnd, cbounds, begin, end, calendar = GetTime(
+#PCM        var, time_name, t0=t0, tf=tf, convert_calendar=convert_calendar
+#PCM    )
+    time_bnds_name = 'time_bnds'
     t, t_bnd, cbounds, begin, end, calendar = GetTime(
-        var, time_name, t0=t0, tf=tf, convert_calendar=convert_calendar
+        var, time_name, time_bnds_name, t0=t0, tf=tf, convert_calendar=convert_calendar
     )
 
     # Are there uncertainties?
@@ -1864,13 +1919,17 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
 
     # Find the mean values over the time period
     if ref_timeint is None:
+        #print("BDBA1, ref=", ref)
         ref_timeint = ref.integrateInTime(mean=True).convert(plot_unit)
         REF_timeint = REF.integrateInTime(mean=True).convert(plot_unit)
+        #print("BDBA2, ref_timeint=",ref_timeint)
     else:
+        #print("BDBA3 else, ref_timeint=", ref_timeint)
         ref_timeint.convert(plot_unit)
         REF_timeint = ref_timeint.interpolate(
             lat=lat, lon=lon, lat_bnds=lat_bnds, lon_bnds=lon_bnds
         )
+        #print("BDBA4, ref_timeint=",ref_timeint)
     if com_timeint is None:
         com_timeint = com.integrateInTime(mean=True).convert(plot_unit)
         COM_timeint = COM.integrateInTime(mean=True).convert(plot_unit)
@@ -1887,6 +1946,8 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
     ref_not_com = (~REF_timeint.data.mask) * (COM_timeint.data.mask)
     com_not_ref = (REF_timeint.data.mask) * (~COM_timeint.data.mask)
     if benchmark_dataset is not None:
+        #print("BDBD1 =",benchmark_dataset.filepath())
+        #print("BDBD2 =",benchmark_dataset)
         ref_timeint.name = "timeint_of_%s" % name
         ref_timeint.toNetCDF4(benchmark_dataset, group="MeanState")
         for region in regions:
@@ -2168,7 +2229,9 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
     else:
         msg = f"[{name}] Bias scored using Collier2018"
         logger.info(msg)
-        bias_score_map = Score(bias, REF_std if REF.time.size > 1 else REF_timeint)
+        #PCM disable the usage of REF_std, since the bias scores are rather low for biomass
+        #bias_score_map = Score(bias, REF_std if REF.time.size > 1 else REF_timeint)
+        bias_score_map = Score(bias, REF_timeint)
         bias_score_map.data.mask = (
             ~ref_and_com
         )  # for some reason I need to explicitly force the mask
@@ -2645,7 +2708,7 @@ def MakeComparable(ref, com, **keywords):
                         ref.time.size,
                         com.time.size,
                     )
-                    print(msg) #PCM
+                    #print(msg) #PCM
                     logger.debug(msg)
                     raise VarsNotComparable()
 

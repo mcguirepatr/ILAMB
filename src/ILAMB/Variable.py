@@ -136,6 +136,9 @@ class Variable:
             assert variable_name is not None
             t0 = keywords.get("t0", None)
             tf = keywords.get("tf", None)
+            #PCM:
+            #t0 = None
+            #tf = None
             convert_calendar = keywords.get("convert_calendar", True)
             out = il.FromNetCDF4(
                 filename,
@@ -164,6 +167,12 @@ class Variable:
                 calendar,
                 attr,
             ) = out
+
+        #PCM
+        #print("filename=",filename)
+        #print("data.max=",data.max())
+        #print("data.min=",data.min())
+        #print("ndata=",ndata)
 
         # Add handling for some units which cf_units does not support
         unit = unit.replace("psu", "1e-3")
@@ -381,6 +390,7 @@ class Variable:
             raise il.NotTemporalVariable()
         t0 = keywords.get("t0", self.time_bnds[:, 0].min())
         tf = keywords.get("tf", self.time_bnds[:, 1].max())
+        #print("BCCC temporal,t0,tf=",self.temporal,t0,tf)
         mean = keywords.get("mean", False)
 
         # find which time bounds are included even partially in the interval [t0,tf]
@@ -390,11 +400,13 @@ class Variable:
         time_bnds[(tf > time_bnds[:, 0]) * (tf < time_bnds[:, 1]), 1] = tf
         time_bnds = time_bnds[ind, :]
         dt = time_bnds[:, 1] - time_bnds[:, 0]
+        #print("BCCC1 dt=",dt)
 
         # now expand this dt to the other dimensions of the data array (i.e. space or datasites)
         for i in range(self.data.ndim - 1):
             dt = np.expand_dims(dt, axis=-1)
 
+        #print("BCCC2 dt=",dt)
         # approximate the integral by nodal integration (rectangle rule)
         np.seterr(over="ignore", under="ignore")
         integral = (self.data[ind] * dt).sum(axis=0)
@@ -427,8 +439,11 @@ class Variable:
                 dt = (dt * (self.data.mask[ind] == 0)).sum(axis=0)
             else:
                 dt = dt.sum(axis=0)
+            #print("BCCC3 dt=",dt)
+            #print("BCCC4 integral.max=",integral.max())
             np.seterr(over="ignore", under="ignore")
             integral = integral / dt
+            #print("BCCC5 integral.max=",integral.max())
             if integral_bnd is not None:
                 integral_bnd[..., 0] = integral_bnd[..., 0] / dt
                 integral_bnd[..., 1] = integral_bnd[..., 1] / dt
@@ -439,6 +454,7 @@ class Variable:
             unit0 = Unit("d") * unit
             unit = Unit(unit0.format().split()[-1])
 
+            #print("BCCC6 integral.data.max=",integral.data.max())
             if not isinstance(integral.mask, np.ndarray):
                 if integral.mask == True:
                     integral = np.ma.masked_array(
@@ -448,6 +464,7 @@ class Variable:
                     integral = np.ma.masked_array(
                         data=integral.data, mask=np.zeros(integral.shape, dtype="bool")
                     )
+            #print("BCCC7 integral.max=",integral.max())
 
             unit0.convert(integral, unit, inplace=True)
             if integral_bnd is not None:
@@ -1258,6 +1275,7 @@ class Variable:
             V.dn99 = per[1]
             V.up99 = per[2]
             V.max = per[3]
+            #print("FFFFFF V.min,V.max=",V.min,V.max)
             V[...] = self.data
             if self.data_bnds is not None:
                 bnd_name = "%s_bnds" % (self.name)

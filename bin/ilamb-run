@@ -607,28 +607,38 @@ def WorkPost(M, C, W, S, verbose=False, skip_plots=False):
     skip_plots : bool, optional
         enable to skip plotting
     """
+    #print("in WorkPost")
     maxCL = 45
     maxML = 20
+    for i, w in enumerate(W):
+        m, c = w
+        #print("in W loop0: i, regions =", i, c.regions)
     for c in C:
+        #print("Before determinePlotLimits: regions =", c.regions)
         c.determinePlotLimits()
     for i, w in enumerate(W):
         m, c = w
+        #print("in W loop: i, regions =", i, c.regions)
         try:
             t0 = time.time()
+            #print("Before modelPlots: regions =", c.regions)
             c.modelPlots(m)
+            #print("Before sitePlots: regions =", c.regions)
             c.sitePlots(m)
+            #print("Before computeOverallScore: regions =", c.regions)
             c.computeOverallScore(m)
+            #print("After computeOverallScore: regions =", c.regions)
             dt = time.time() - t0
             proc[rank] += dt
             if verbose:
-                dt = datetime.timedelta(seconds=max(1, int(np.round(dt))))
-                print(
+               dt = datetime.timedelta(seconds=max(1, int(np.round(dt))))
+               print(
                     (
                         "    {0:>%d} {1:<%d} %sCompleted%s {2:>8}"
                         % (maxCL, maxML, OK, ENDC)
                     ).format(c.longname, m.name, str(dt))
                 )
-                sys.stdout.flush()
+               sys.stdout.flush()
         except Exception as ex:
             ierr[rank] = 1
             logger.debug("[%s][%s]\n%s" % (c.longname, m.name, format_exc()))
@@ -646,10 +656,15 @@ def WorkPost(M, C, W, S, verbose=False, skip_plots=False):
 
     for i, c in enumerate(C):
         try:
+            #for c in C:
+            #   print("Before compositePlots: regions =", c.regions)
             c.compositePlots()
+            #for c in C:
+            #   print("After compositePlots: regions =", c.regions)
         except Exception as ex:
             ierr[rank] = 1
             logger.debug("[compositePlots][%s]\n%s" % (c.longname, format_exc()))
+        #print("Before generateHtml: regions =", c.regions)
         c.generateHtml()
 
     sys.stdout.flush()
@@ -947,12 +962,12 @@ missing = []
 newregions = []
 #PCM: added better handling for regions with spaces in their names. Need to use _ instead of spaces in the rose-app.conf file.
 #PCM: those _ are replaced by spaces here.
-print("regions list ",args.regions) #PCM 
+#print("regions list ",args.regions) #PCM 
 for region in args.regions:
     region=region.replace('_', ' ') #PCM
     newregions.append(region)
 args.regions = newregions
-print("new regions list ",args.regions) #PCM 
+#print("new regions list ",args.regions) #PCM 
 for region in args.regions:
     if region not in r.regions:
         missing.append(region)
@@ -1031,6 +1046,7 @@ if rank == 0:
 
 if rank == 0 and not args.quiet:
     print("\nParsing config file %s...\n" % args.config[0])
+#print("Before Scoreboard: args.regions =", args.regions)
 S = Scoreboard(
     args.config[0],
     regions=args.regions,
@@ -1044,7 +1060,11 @@ S = Scoreboard(
     rmse_score_basis=args.rmse_score_basis,
     df_errs=df_errs,
 )
+#print("Before MatchRelationships: args.regions =", args.regions)
 C = MatchRelationshipConfrontation(S.list())
+#print("After MatchRelationships: args.regions =", args.regions)
+#for c in C:
+#    print("After MatchRelationships2: regions =", c.regions)
 if len(args.study_limits) == 2:
     args.study_limits[1] += 1
     for c in C:
@@ -1060,6 +1080,8 @@ if rank == 0 and not args.quiet and len(Cf) != len(C):
     for c in Cf:
         print(("    {0:>45}").format(c.longname))
 C = Cf
+#for c in C:
+#    print("After FilterConfrontationList: regions =", c.regions)
 
 sys.stdout.flush()
 comm.Barrier()
@@ -1070,8 +1092,13 @@ if rank == 0 and not args.quiet:
 sys.stdout.flush()
 comm.Barrier()
 
+#for c in C:
+#    print("Before BuildLocalWorkList0: regions =", c.regions)
 W = BuildLocalWorkList(M, C, skip_cache=True)
 WorkConfront(W, not args.quiet, args.clean)
+for i, w in enumerate(W):
+    m, c = w
+#    print("After WorkConfront0: regions =", c.regions)
 
 sys.stdout.flush()
 comm.Barrier()
@@ -1083,7 +1110,12 @@ if not args.skip_plots:
     sys.stdout.flush()
     comm.Barrier()
 
+#    for c in C:
+#        print("Before BuildLocalWorkList: regions =", c.regions)
     W = BuildLocalWorkList(M, C, skip_cache=False)
+    for i, w in enumerate(W):
+        m, c = w
+#        print("After BuildLocalWorkList: regions =",  c.regions)
     WorkPost(M, C, W, S, not args.quiet)
 
 if rank == 0:
