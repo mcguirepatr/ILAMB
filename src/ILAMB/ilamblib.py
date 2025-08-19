@@ -338,7 +338,7 @@ def ConvertCalendar(t, units, calendar):
     )
 
 
-def GetTime(var, time_name, time_bnds_name=None, t0=None, tf=None, convert_calendar=True, ignore_time_array=True):
+def GetTime(var, time_name, t0=None, tf=None, convert_calendar=True, ignore_time_array=True):
     """ """
     # New method of handling time does not like my biggest/smallest time convention
     if t0 is not None:
@@ -379,10 +379,10 @@ def GetTime(var, time_name, time_bnds_name=None, t0=None, tf=None, convert_calen
         raise ValueError(msg)
 
     # If no time bounds we create them
-    #PCM time_bnds_name = t.bounds if "bounds" in t.ncattrs() else None
+    time_bnds_name = t.bounds if "bounds" in t.ncattrs() else None
     #PCM print("ILAMBLIB GetTime A0b: t.ncattrs")
     #PCM print(t.ncattrs())
-    time_bnds_name = time_bnds_name #PCM
+    #time_bnds_name = time_bnds_name #PCM
     #print("ILAMBLIB GetTime A0b: time_bnds_name=",time_bnds_name)
     if time_bnds_name is not None:
         if time_bnds_name not in dset.variables.keys():
@@ -1096,12 +1096,8 @@ def FromNetCDF4(
     depth_bnd = None
     data = None
     cbounds = None
-#PCM    t, t_bnd, cbounds, begin, end, calendar = GetTime(
-#PCM        var, time_name, t0=t0, tf=tf, convert_calendar=convert_calendar
-#PCM    )
-    time_bnds_name = 'time_bnds'
     t, t_bnd, cbounds, begin, end, calendar = GetTime(
-        var, time_name, time_bnds_name, t0=t0, tf=tf, convert_calendar=convert_calendar
+        var, time_name, t0=t0, tf=tf, convert_calendar=convert_calendar
     )
 
     # Are there uncertainties?
@@ -2248,7 +2244,8 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
             bias_val.name = "Bias %s" % region
             bias_val.toNetCDF4(dataset, group="MeanState")
             bias_score = bias_score_map.integrateInSpace(
-                region=region, mean=True, weight=normalizer
+                region=region, mean=True, weight=np.abs(normalizer)
+#PCM                region=region, mean=True, weight=normalizer
             )
             bias_score.name = "Bias Score %s" % region
             bias_score.toNetCDF4(dataset, group="MeanState")
