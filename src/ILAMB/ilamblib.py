@@ -2243,8 +2243,10 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
             )
             bias_val.name = "Bias %s" % region
             bias_val.toNetCDF4(dataset, group="MeanState")
+            if normalizer is not None:
+                normalizer1 = np.abs(normalizer)
             bias_score = bias_score_map.integrateInSpace(
-                region=region, mean=True, weight=np.abs(normalizer)
+                region=region, mean=True, weight=normalizer1
 #PCM                region=region, mean=True, weight=normalizer
             )
             bias_score.name = "Bias Score %s" % region

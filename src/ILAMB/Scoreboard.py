@@ -333,7 +333,16 @@ def BuildScalars(node):
                         s[c] = np.ma.masked_array(
                             np.zeros(len(models)), mask=np.ones(len(models), dtype=bool)
                         )
-                    s[c][models.index(dset.getncattr("name"))] = np.ma.masked_invalid(grp[c][...])
+#PCM                    s[c][models.index(dset.getncattr("name"))] = np.ma.masked_invalid(grp[c][...])
+                    arr = grp[c][...] #PCM
+                    # Only try to mask if it's numeric
+#                    print(f"[ILAMB WARNING]in {dset.getncattr('name')} in file {fname}")
+                    if np.issubdtype(arr.dtype, np.floating) or np.issubdtype(arr.dtype, np.integer):
+                       s[c][models.index(dset.getncattr("name"))] = np.ma.masked_invalid(arr)
+                    else:
+                    # Skip or fill with masked array if not numeric
+                       s[c][models.index(dset.getncattr("name"))] = np.ma.masked_all(arr.shape)
+                       print(f"[ILAMB WARNING] Skipping non-numeric scalar '{c}' in {dset.getncattr('name')} in file {fname}")
     else:
         scores = None
         for child in node.children:
