@@ -461,6 +461,7 @@ class Confrontation(object):
             skip_rmse = self.keywords.get("skip_rmse", False)
             skip_iav = self.keywords.get("skip_iav", True)
             skip_cycle = self.keywords.get("skip_cycle", False)
+            biasscore_switch = self.keywords.get("biasscore_switch", False)
             rmse_score_basis = self.keywords.get("rmse_score_basis", "cycle")
             if obs.spatial:
                 il.AnalysisMeanStateSpace(
@@ -476,6 +477,7 @@ class Confrontation(object):
                     skip_iav=skip_iav,
                     skip_cycle=skip_cycle,
                     mass_weighting=mass_weighting,
+                    biasscore_switch=biasscore_switch,
                     rmse_score_basis=rmse_score_basis,
                     df_errs=self.df_errs,
                 )
@@ -493,6 +495,7 @@ class Confrontation(object):
                     skip_iav=skip_iav,
                     skip_cycle=skip_cycle,
                     mass_weighting=mass_weighting,
+                    biasscore_switch=biasscore_switch,
                     df_errs=self.df_errs,
                 )
             fcm.mod_dset.setncattr("complete", 1)
