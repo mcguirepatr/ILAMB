@@ -1879,6 +1879,7 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
     com_timeint = keywords.get("com_timeint", None)
     rmse_score_basis = keywords.get("rmse_score_basis", "cycle")
     df_errs = keywords.get("df_errs", None)
+    biasscore_switch = keywords.get("biasscore_switch", False)
     ILAMBregions = Regions()
 
     # Convert str types to booleans
@@ -2223,11 +2224,16 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
         bias_score_map.unit = "1"
         bias_score_map.name = "biasscore_map_of_%s" % name
     else:
-        msg = f"[{name}] Bias scored using Collier2018"
-        logger.info(msg)
-        #PCM disable the usage of REF_std, since the bias scores are rather low for biomass
-        #bias_score_map = Score(bias, REF_std if REF.time.size > 1 else REF_timeint)
-        bias_score_map = Score(bias, REF_timeint)
+        if not biasscore_switch:
+           msg = f"[{name}] Bias scored using Collier2018"
+           logger.info(msg)
+           #PCM if we use  REF_std, since the bias scores are rather low for ESACCI6.0 biomass
+           bias_score_map = Score(bias, REF_std if REF.time.size > 1 else REF_timeint)
+        else:
+           #PCM the alternative is to use the following:
+           msg = f"[{name}] Bias scored using REF_timeint version of Collier2018"
+           logger.info(msg)
+           bias_score_map = Score(bias, REF_timeint)
         bias_score_map.data.mask = (
             ~ref_and_com
         )  # for some reason I need to explicitly force the mask
