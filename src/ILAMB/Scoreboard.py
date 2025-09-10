@@ -455,7 +455,8 @@ class Scoreboard:
             if not node.isLeaf():
                 return
 
-            node.rmse_score_basis = self.rmse_score_basis
+            if not hasattr(node, 'rmse_score_basis') or node.rmse_score_basis is None: #PCM
+                node.rmse_score_basis = self.rmse_score_basis
 
             #print("in Scoreboard1: node.regions, regions =", node.regions, regions)
             # if the user hasn't set regions, use the globally defined ones
@@ -540,6 +541,48 @@ class Scoreboard:
         TraversePreorder(self.tree, _hasConfrontation)
         return global_confrontation_list
 
+    def add_cross_group_scores(self):
+        """Add an Average Score over Hydrology Cycle and Ecosystem and Carbon Cycle groups."""
+
+        # Defensive: make sure both groups exist
+        if "Hydrology Cycle" not in self.scalars or "Ecosystem and Carbon Cycle" not in self.scalars:
+            print("[ILAMB WARNING] Could not find both Hydrology and Ecosystem and Carbon Cycle groups")
+            return
+
+        hydro_score = np.ma.masked_equal(
+            self.scalars["Hydrology Cycle"]["Overall Score global"], -999.0
+        )
+        carbon_score = np.ma.masked_equal(
+            self.scalars["Ecosystem and Carbon Cycle"]["Overall Score global"], -999.0
+        )
+
+        hydro_score = hydro_score.astype(np.float64)
+        carbon_score   = carbon_score.astype(np.float64)
+
+        w_hydro = 2.0 #weighted by number of variables per group
+        w_carbon   = 5.0
+
+        # Weighted mean (ignores masked values like -999.0)
+        with np.errstate(under='ignore', over='ignore', invalid='ignore'):
+            combined_score = np.ma.average(
+                [hydro_score, carbon_score], weights=[w_hydro, w_carbon], axis=0
+            )
+        combined_score.mask = np.ma.mask_or(hydro_score.mask, carbon_score.mask)
+
+        # Stick it into the top-level scalars dict
+        self.scalars["Hydrology and Carbon Cycles"]  = {"children": {}, "Overall Score global": combined_score.filled(-999.0).tolist()}
+
+
+        hydro_carbon_node = Node("Hydrology and Carbon Cycles")
+        hydro_carbon_node.output_path = self.build_dir
+        #hydro_carbon_node.bgcolor = "#F2E6FF",       # pick a group color: we choose Pale Lavender (#F2E6FF) #which is not so pale
+        hydro_carbon_node.bgcolor = "#eeeeee",       # pick a group color
+        hydro_carbon_node.parent = self.tree   # hook into root
+
+        self.tree.children.append(hydro_carbon_node)
+        print("[ILAMB INFO] Added cross-group Hydrology and Carbon Cycles weighted-average scores")
+
+
     def createJSON(self, M, filename="scalars.json"):
         global scalars
         global models
@@ -561,6 +604,10 @@ class Scoreboard:
             section = "Relationships"
             TraversePostorder(rel_tree, BuildScalars)
             TraversePreorder(rel_tree, ConvertList)
+
+        self.scalars = scalars
+        self.add_cross_group_scores()
+
         with open(os.path.join(self.build_dir, filename), mode="w") as f:
             json.dump(scalars, f)
         return global_scores, rel_tree
@@ -710,6 +757,25 @@ class Scoreboard:
 	  }
       }
 
+      function printRelationships(table, row, node, cmap, region_option, scalar_name) {
+          for (let h2 in node["children"]) {
+              let child = node["children"][h2];
+              if (Object.keys(child["children"]).length === 0) {
+                  // leaf node
+                  let s_name = h2.replace("/", "|") + " Score " + region_option.options[region_option.selectedIndex].value;
+                  printRow(table, row, child[s_name], cmap);
+                  row += 1;
+              } else {
+                  // internal node
+                  printRow(table, row, child[scalar_name], cmap);
+                  row += 1;
+                  row = printRelationships(table, row, child, cmap, region_option, scalar_name);
+              }
+          }
+          return row;
+      }
+
+
       function colorTable() {
 
         $.getJSON("scalars.json", function(data) {
@@ -727,24 +793,36 @@ class Scoreboard:
 	  var row = 1;
 	  var tab = "";
 	  var table = document.getElementById("scoresTable");
-	  for(let h1 in scalars){
-	      printRow(table,row,scalars[h1][scalar_name],cmap);
-	      row += 1;
-	      H1 = scalars[h1]["children"]
-	      for(let h2 in H1){
-		  printRow(table,row,H1[h2][scalar_name],cmap);
-		  row += 1;
-		  H2 = H1[h2]["children"]
-		  for(let v in H2){
-	              var s_name = scalar_name;
-                      if(h1 == "Relationships") {
-                        s_name = v.replace("/","|") + " Score " + region_option.options[region_option.selectedIndex].value;
-                      }
-		      printRow(table,row,H2[v][s_name],cmap);
-		      row += 1;
-		  }
-	      }
-	  }
+
+      for (let h1 in scalars) {
+             // 1. non-Relationships nodes
+             if (h1 !== "Relationships") {
+                 let scores = scalars[h1]["Overall Score global"];
+                 printRow(table, row, scores, cmap);
+                 row += 1;
+
+                 let H1 = scalars[h1]["children"];
+                 for (let h2 in H1) {
+                     printRow(table, row, H1[h2][scalar_name], cmap);
+                     row += 1;
+
+                     let H2 = H1[h2]["children"];
+                     for (let v in H2) {
+                         printRow(table, row, H2[v][scalar_name], cmap);
+                         row += 1;
+                     }
+                 }
+             }
+         }
+
+      // 2. Relationships nodes
+      if ("Relationships" in scalars) { 
+          let scores = scalars["Relationships"]["Overall Score global"];
+          printRow(table, row, scores, cmap);
+          row += 1;
+ 
+          row = printRelationships(table, row, scalars["Relationships"], cmap, region_option, scalar_name);
+      }
 
 	  table = document.getElementById("scoresLegend");
 	  row = 0;
