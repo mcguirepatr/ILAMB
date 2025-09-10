@@ -209,12 +209,17 @@ class ConfCO2(Confrontation):
         Ninf = 60
         ilev = 1
 
+#        print("CO2 obs   initial time_bnd=",obs.time_bnds[0, 0],obs.time_bnds[-1, 1])
+#        print("CO2 model initial time_bnd=",obs.time_bnds[0, 0] - float(Ninf) / 12 * 365 + 29.0,obs.time_bnds[-1, 1])
+
         # Get the model result
         mod = m.extractTimeSeries(
             emulated_flux,
-            initial_time=obs.time_bnds[0, 0] - float(Ninf) / 12 * 365 + 29.0,
+#PCM            initial_time=obs.time_bnds[0, 0] - float(Ninf) / 12 * 365 + 29.0,
+            initial_time=obs.time_bnds[0, 0] - float(Ninf) / 12 * 365,
             final_time=obs.time_bnds[-1, 1],
         )
+#        print("CO2 model intermed. time_bnd=",mod.time_bnds[0, 0], mod.time_bnds[-1, 1])
 
         # What if I don't have Ninf leadtime?
         tf = min(obs.time_bnds[-1, 1], mod.time_bnds[-1, 1])
@@ -222,11 +227,29 @@ class ConfCO2(Confrontation):
             tf -= tf % 365  # needs to end in integer years
         obs.trim(t=[-1e20, tf])
         mod.trim(t=[-1e20, tf])
+#        print("CO2 tf=",tf)
+#        print("CO2 obs   final time_bnd=",obs.time_bnds[0, 0], obs.time_bnds[-1, 1])
+#        print("CO2 model final time_bnd=",mod.time_bnds[0, 0], mod.time_bnds[-1, 1])
 
         # Integrate the emulated flux over each pulse region
+#        print("CO2 mod.shape=",mod.data.shape)
         region_int = {}
         for region in self.pulse_regions:
-            region_int[region] = mod.integrateInSpace(region=region).convert("Pg yr-1")
+#            region_int[region] = mod.integrateInSpace(region=region).convert("Pg yr-1") #PCM
+            cube = mod.integrateInSpace(region=region).convert("Pg yr-1") #PCM
+
+            # Replace NaNs with 0 in the data array
+            data_filled = np.where(np.isnan(cube.data), 0.0, cube.data)
+            cube.data = data_filled
+
+            # Store in the dictionary
+            region_int[region] = cube
+
+#            print("CO2 region=",region)
+#            print("CO2 region_int.shape=",region_int[region].data.shape)
+#            nan_indices = np.argwhere(np.isnan(region_int[region].data))
+#            print("CO2 region_int : Indices of NaNs (first 10):", nan_indices[:10])
+#            print("CO2 region_int.data=",region_int[region].data)
 
         # Load the operator from the files
         lat, lon, H = None, None, None
@@ -253,7 +276,7 @@ class ConfCO2(Confrontation):
         Nyrs = int(mod.time.size / 12)
         Ntot = 12 * Nyrs + Ninf
         eflux = np.zeros((obs.ndata, 22, Ntot))
-        for j in range(20):
+        for j in range(20): #PCM: this is the original setting; not range(22). The Pulse .nc file goes up to 21, but there is a j+1 in the region_int label below
             for s in range(obs.ndata):
                 Htemp = H[j, ..., ilat[s], ilon[s]]
                 Htrac = np.zeros((22, Ntot, 12 * Nyrs))
@@ -270,10 +293,28 @@ class ConfCO2(Confrontation):
                 ) * (
                     -1e-3
                 )  # H is [] ?
+                #print("s, j, eflux[s, j, :]=", s, j, eflux[s, j, :])
 
+#        print("eflux.shape before sum:", eflux.shape)
+#        print("eflux contents0:", eflux)
+#        nan_indices = np.argwhere(np.isnan(eflux))
+#        print("Indices of NaNs (first 10):", nan_indices[:10])
+#        # Extract unique (dim0, dim1) pairs
+#        nan_slices = np.unique(nan_indices[:, :2], axis=0)
+#        print("Slices (dim0, dim1) that contain any NaNs:")
+#        for pair in nan_slices:
+#            print(f"dim0={pair[0]}, dim1={pair[1]}")
         eflux = eflux.sum(axis=1).T
+#        print("eflux.shape after sum:", eflux.shape)
+#        print("Ninf:", Ninf)
+#        print("Length of eflux:", len(eflux))
+#        print("eflux contents1:", eflux)
         eflux = eflux[Ninf:-Ninf]
+#        print("eflux.shape after slicing:", eflux.shape)
+#        print("eflux contents2:", eflux)
         eflux = np.ma.masked_array(eflux, mask=obs.data.mask)
+#        print("efluxr=", eflux)
+
         mod = Variable(
             name="co2",
             unit=obs.unit,
@@ -284,6 +325,9 @@ class ConfCO2(Confrontation):
             time_bnds=obs.time_bnds,
             data=eflux,
         )
+#        print("emulatedMR obs.lat obs.lon ", obs.lat, obs.lon)
+#        print("emulatedMR mod.shape ", mod.data.shape)
+#        print("emulatedMR  mod ", mod.data)
         return mod
 
     def stageData(self, m):
@@ -332,6 +376,9 @@ class ConfCO2(Confrontation):
         if ((mod is None) or no_co2) and (not never_emulation):
             mod = self.emulatedModelResult(m, obs)
             emulated_co2 = True
+
+#        print("stageData0 mod.shape ", mod.data.shape)
+#        print("stageData0  mod ", mod.data)
 
         if mod is None:
             raise il.VarNotInModel()
@@ -414,6 +461,8 @@ class ConfCO2(Confrontation):
             tmin = max(OCNco2Emu.time_bnds[0, 0], obs.time_bnds[0, 0])
             tmax = min(OCNco2Emu.time_bnds[-1, 1], obs.time_bnds[-1, 1])
 
+#            print("stageData1 mod.shape ", mod.data.shape)
+#            print("stageData1  mod ", mod.data)
             if tmax >= tmin:
                 OCNco2Emu.trim(t=[tmin, tmax])
                 FFco2Emu.trim(t=[tmin, tmax])
@@ -421,10 +470,14 @@ class ConfCO2(Confrontation):
                 obs.data = obs.data - OCNco2Emu.data - FFco2Emu.data
                 mod.trim(t=[tmin, tmax])
 
+#            print("stageData2 mod.shape ", mod.data.shape)
+#            print("stageData2  mod ", mod.data)
         # Remove the trend via quadradic polynomial
         obs = _detrend(obs)
         mod = _detrend(mod)
 
+#        print("stageData3 mod.shape ", mod.data.shape)
+#        print("stageData3  mod ", mod.data)
         return obs, mod
 
     def relationshipInd(self, m):
@@ -601,6 +654,8 @@ class ConfCO2(Confrontation):
         # Grab the data
         obs, mod = self.stageData(m)
 
+#        print("confront mod.shape ", mod.data.shape)
+#        print("confront mod ", mod.data)
         # Compute amplitude, min and max phase, and annual cycle as numpy data arrays
         ocyc, ot, otb = _cycleShape(obs)
         mcyc, mt, mtb = _cycleShape(mod)
@@ -618,6 +673,8 @@ class ConfCO2(Confrontation):
             obs_amp[i], obs_maxp[i], obs_minp[i], obs_cyc[:, i] = _siteCharacteristics(
                 ot, ocyc[..., i]
             )
+#            print("i, site ", i, site)
+#            print("mt, mcyc ", mt, mcyc[..., i])
             mod_amp[i], mod_maxp[i], mod_minp[i], mod_cyc[:, i] = _siteCharacteristics(
                 mt, mcyc[..., i]
             )
