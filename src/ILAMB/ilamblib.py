@@ -2272,6 +2272,8 @@ def AnalysisMeanStateSpace(ref, com, **keywords):
                 com_spaceint.name = "spaceint_of_%s_over_%s" % (name, region)
                 com_spaceint.toNetCDF4(dataset, group="MeanState")
 
+    print("A1 skip_rmse=",skip_rmse)
+    print("A1 rmse_score_basis=",rmse_score_basis)
     # RMSE: maps, scalars, and scores
     if (not skip_rmse) and (rmse_score_basis == "series"):
         rmse = REF.rmse(COM).convert(plot_unit)
