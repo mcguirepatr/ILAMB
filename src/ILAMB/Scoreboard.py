@@ -549,35 +549,51 @@ class Scoreboard:
             print("[ILAMB WARNING] Could not find both Hydrology and Ecosystem and Carbon Cycle groups")
             return
 
-        hydro_score = np.ma.masked_equal(
-            self.scalars["Hydrology Cycle"]["Overall Score global"], -999.0
-        )
-        carbon_score = np.ma.masked_equal(
-            self.scalars["Ecosystem and Carbon Cycle"]["Overall Score global"], -999.0
-        )
-
-        hydro_score = hydro_score.astype(np.float64)
-        carbon_score   = carbon_score.astype(np.float64)
-
-        w_hydro = 2.0 #weighted by number of variables per group
-        w_carbon   = 5.0
-
-        # Weighted mean (ignores masked values like -999.0)
-        with np.errstate(under='ignore', over='ignore', invalid='ignore'):
-            combined_score = np.ma.average(
-                [hydro_score, carbon_score], weights=[w_hydro, w_carbon], axis=0
-            )
-        combined_score.mask = np.ma.mask_or(hydro_score.mask, carbon_score.mask)
-
-        # Stick it into the top-level scalars dict
-        self.scalars["Hydrology and Carbon Cycles"]  = {"children": {}, "Overall Score global": combined_score.filled(-999.0).tolist()}
-
+        self.scalars["Hydrology and Carbon Cycles"] = {"children": {}}
 
         hydro_carbon_node = Node("Hydrology and Carbon Cycles")
         hydro_carbon_node.output_path = self.build_dir
         #hydro_carbon_node.bgcolor = "#F2E6FF",       # pick a group color: we choose Pale Lavender (#F2E6FF) #which is not so pale
-        hydro_carbon_node.bgcolor = "#eeeeee",       # pick a group color
+        hydro_carbon_node.bgcolor = "#eeeeee",       # pick a group color: dark cyan
         hydro_carbon_node.parent = self.tree   # hook into root
+
+        r = Regions()
+        for region in self.regions:
+            try:
+                rname = r.getRegionName(region)
+            except:
+                rname = region
+
+            hydro_score = np.ma.masked_equal(
+                self.scalars["Hydrology Cycle"]["Overall Score " + rname], -999.0
+            )
+            carbon_score = np.ma.masked_equal(
+                self.scalars["Ecosystem and Carbon Cycle"]["Overall Score " + rname], -999.0
+            )
+
+            hydro_score = hydro_score.astype(np.float64)
+            carbon_score   = carbon_score.astype(np.float64)
+
+            w_hydro = 2.0 #weighted by number of variables per group
+            w_carbon   = 5.0
+
+            # Weighted mean (ignores masked values like -999.0)
+            with np.errstate(under='ignore', over='ignore', invalid='ignore'):
+                combined_score = np.ma.average(
+                    [hydro_score, carbon_score], weights=[w_hydro, w_carbon], axis=0
+                )
+            combined_score.mask = np.ma.mask_or(hydro_score.mask, carbon_score.mask)
+
+            # Stick it into the top-level scalars dict
+            #self.scalars["Hydrology and Carbon Cycles"]  = {"children": {}, "Overall Score " + rname: combined_score.filled(-999.0).tolist()}
+            self.scalars["Hydrology and Carbon Cycles"]["children"]["Overall Score " + rname] = (
+                 combined_score.filled(-999.0).tolist()
+            )
+
+            region_node = Node("Overall Score " + rname)
+            region_node.output_path = self.build_dir
+            region_node.parent = hydro_carbon_node
+            hydro_carbon_node.children.append(region_node)
 
         self.tree.children.append(hydro_carbon_node)
         print("[ILAMB INFO] Added cross-group Hydrology and Carbon Cycles weighted-average scores")
@@ -783,7 +799,8 @@ class Scoreboard:
 	  var scalar_option = document.getElementById("ScalarOption");
           var region_option = document.getElementById("RegionOption");
 	  var scalar_name   = scalar_option.options[scalar_option.selectedIndex].value;
-	  scalar_name  += " " + region_option.options[region_option.selectedIndex].value;
+      var region_name   = region_option.options[region_option.selectedIndex].value;
+	  scalar_name  += " " + region_name 
 
 	  var PuOr = ['#b35806','#e08214','#fdb863','#fee0b6','#f7f7f7','#d8daeb','#b2abd2','#8073ac','#542788'];
 	  var GnRd = ['#b2182b','#d6604d','#f4a582','#fddbc7','#f7f7f7','#d9f0d3','#a6dba0','#5aae61','#1b7837'];
@@ -797,7 +814,7 @@ class Scoreboard:
       for (let h1 in scalars) {
              // 1. non-Relationships nodes
              if (h1 !== "Relationships") {
-                 let scores = scalars[h1]["Overall Score global"];
+                 let scores = scalars[h1]["Overall Score " + region_name];
                  printRow(table, row, scores, cmap);
                  row += 1;
 
