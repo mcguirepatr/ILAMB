@@ -559,17 +559,19 @@ class Scoreboard:
 
         r = Regions()
         for region in self.regions:
-            try:
-                rname = r.getRegionName(region)
-            except:
-                rname = region
+            rname = region
 
-            hydro_score = np.ma.masked_equal(
-                self.scalars["Hydrology Cycle"]["Overall Score " + rname], -999.0
-            )
-            carbon_score = np.ma.masked_equal(
-                self.scalars["Ecosystem and Carbon Cycle"]["Overall Score " + rname], -999.0
-            )
+            scores = self.scalars["Hydrology Cycle"].get("Overall Score " + rname, None)
+            if scores is not None:
+                 hydro_score = np.ma.masked_equal(scores, -999.0)
+            else:
+                 continue
+
+            scores = self.scalars["Ecosystem and Carbon Cycle"].get("Overall Score " + rname, None)
+            if scores is not None:
+                 carbon_score = np.ma.masked_equal(scores, -999.0)
+            else:
+                 continue
 
             hydro_score = hydro_score.astype(np.float64)
             carbon_score   = carbon_score.astype(np.float64)
@@ -586,7 +588,7 @@ class Scoreboard:
 
             # Stick it into the top-level scalars dict
             #self.scalars["Hydrology and Carbon Cycles"]  = {"children": {}, "Overall Score " + rname: combined_score.filled(-999.0).tolist()}
-            self.scalars["Hydrology and Carbon Cycles"]["children"]["Overall Score " + rname] = (
+            self.scalars["Hydrology and Carbon Cycles"]["Overall Score " + rname] = (
                  combined_score.filled(-999.0).tolist()
             )
 
