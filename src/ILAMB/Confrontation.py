@@ -456,8 +456,8 @@ class Confrontation(object):
                     }
                 )
 
-            print("A0 keys=",self.keywords.keys())
-            print("A0 rmse_score_basis=",self.keywords.get("rmse_score_basis"))
+#            print("A0 keys=",self.keywords.keys())
+#            print("A0 rmse_score_basis=",self.keywords.get("rmse_score_basis"))
             # Read in some options and run the mean state analysis
             mass_weighting = self.keywords.get("mass_weighting", False)
             skip_rmse = self.keywords.get("skip_rmse", False)
@@ -465,7 +465,7 @@ class Confrontation(object):
             skip_cycle = self.keywords.get("skip_cycle", False)
             biasscore_switch = self.keywords.get("biasscore_switch", False)
             rmse_score_basis = self.keywords.get("rmse_score_basis", "cycle")
-            print("A0b rmse_score_basis=",rmse_score_basis)
+#            print("A0b rmse_score_basis=",rmse_score_basis)
             if obs.spatial:
                 il.AnalysisMeanStateSpace(
                     obs,
