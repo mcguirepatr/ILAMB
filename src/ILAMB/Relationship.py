@@ -246,9 +246,25 @@ class Relationship(object):
                 with np.errstate(under="ignore"):
                     i = gauss_critval * (np.log10(y) - np.polyval(p, x)).std()
             else:
-                p = np.polyfit(x, y, self.order)
-                with np.errstate(under="ignore"):
-                    i = gauss_critval * (y - np.polyval(p, x)).std()
+                # Defensive check before attempting polyfit : PCM
+                if (len(x) <= self.order or
+                    np.allclose(x, x[0]) or
+                    np.allclose(y, y[0]) or
+                    not (np.all(np.isfinite(x)) and np.all(np.isfinite(y)))):
+                    print(f"[ILAMB WARNING] Skipping polyfit for region {region} "
+                          f"(insufficient or invalid data)")
+                    p = None
+                    #return  # skip regression for this region
+                else:
+                    try:
+                        p = np.polyfit(x, y, self.order)
+                    except np.linalg.LinAlgError:
+                        print(f"[ILAMB WARNING] Polyfit failed for region {region}")
+                        p = None
+                        #return  # gracefully skip
+                if p is not None:
+                    with np.errstate(under="ignore"):
+                        i = gauss_critval * (y - np.polyval(p, x)).std()
 
         # Save the arrays
         self.dist["default" if region is None else region] = (
