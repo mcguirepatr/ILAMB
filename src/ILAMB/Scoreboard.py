@@ -591,11 +591,11 @@ class Scoreboard:
             self.scalars["Hydrology and Carbon Cycles"]["Overall Score " + rname] = (
                  combined_score.filled(-999.0).tolist()
             )
-
-            region_node = Node("Overall Score " + rname)
-            region_node.output_path = self.build_dir
-            region_node.parent = hydro_carbon_node
-            hydro_carbon_node.children.append(region_node)
+#We comment this out, since we don't want the region nodes in the chart
+#            region_node = Node("Overall Score " + rname)
+#            region_node.output_path = self.build_dir
+#            region_node.parent = hydro_carbon_node
+#            hydro_carbon_node.children.append(region_node)
 
         self.tree.children.append(hydro_carbon_node)
         print("[ILAMB INFO] Added cross-group Hydrology and Carbon Cycles weighted-average scores")
